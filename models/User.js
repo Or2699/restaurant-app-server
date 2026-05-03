@@ -10,6 +10,8 @@ const userSchema = new mongoose.Schema({
     totalBonuses: { type: Number, default: 0 } ,
     createdAt: { type: Date, default: Date.now } ,// תאריך הצטרפות אוטומטי
     isApproved: { type: Boolean, default: function() { return this.role === 'customer'; }}, // לקוח מאושר אוטומטית, עובד לא
+    isOnline: { type: Boolean, default: false }, // האם העובד כרגע במשמרת
+    lastShiftStart: { type: Date }, // מתי התחילה המשמרת האחרונה
 });
 
 const User = mongoose.model('User', userSchema); //יצירת המודל מתוך הסכימה 

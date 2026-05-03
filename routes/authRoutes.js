@@ -10,7 +10,7 @@ const router = express.Router();
 // Register - נתיב להרשמה 
 router.post('/register' , async (req , res) => {
    try {
-     const {fullName , email , password , phone , role } = req.body;
+     const {fullName , email , password , phone , role , hourlyWage } = req.body;
      const userExists = await User.findOne({email});
       if(userExists) { // בדיקה אם המשתמש כבר קיים
         return res.status(400).json({message: 'User already exists'});
@@ -18,17 +18,17 @@ router.post('/register' , async (req , res) => {
 
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password , salt);
-      const user = await User.create ({ fullName , email , password : hashedPassword , phone , role });
+      const user = await User.create ({ fullName , email , password : hashedPassword , phone , role , hourlyWage: hourlyWage || (role === 'waiter' ? 35 : (role === 'waiter') ? 50 : 0) }); 
 
-      let responseMessage = 'נרשמת בהצלחה!';
-      if (role === 'waiter' || role === 'admin') {
-          responseMessage = 'נרשמת בהצלחה! חשבונך ממתין לאישור מנהל.';
-      }
-      res.status(201).json({message: responseMessage, userId: user._id });
+     let responseKey = 'reg_success_customer';
+     if (role === 'waiter' || role === 'admin') {
+         responseKey = 'reg_success_pending';
+     }
+      res.status(201).json({messageKey: responseKey, userId: user._id });
 
    }
    catch (error) {
-      res.status(500).json({message : error.message});
+      res.status(500).json({messageKey : error.messageKey});
    }
 })
 
@@ -45,7 +45,7 @@ router.post('/login' , async (req,res) => {
     }
 
      if (!user.isApproved) {
-       return res.status(401).json({ message: "חשבונך ממתין לאישור מנהל" });
+       return res.status(401).json({ message: "auth_pending_approval" }); //חשבונך ממתין לאישור מנהל 
      }
 
     const isMatch = await bcrypt.compare(password , user.password);
@@ -59,6 +59,36 @@ router.post('/login' , async (req,res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+
+// עדכון כניסה/יציאה ממשמרת
+router.patch('/toggle-shift/:id' , async(req,res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.isOnline = !user.isOnline;
+    if (user.isOnline) {
+        user.lastShiftStart = new Date(); // שמירת זמן התחלת המשמרת שזה עכשיו 
+    }
+    await user.save();
+    res.json({ success: true, isOnline: user.isOnline });
+  } catch (error) {
+     res.status(500).json({ message: error.message });
+  }
+});
+
+
+// נתיב לקבלת כל העובדים הפעילים (למנהל)
+router.get('/active-staff', async (req, res) => {
+    try {
+        const staff = await User.find({ role: { $ne: 'customer' }, isOnline: true }).select('fullName role hourlyWage lastShiftStart');
+        res.json(staff);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 
 export default router;
 

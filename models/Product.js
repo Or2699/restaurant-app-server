@@ -7,7 +7,7 @@ const productSchema = new mongoose.Schema({
     image : { type: String } , // url למנה 
     category : { type : String , enum: ['starters', 'main', 'desserts', 'drinks'] , required: true} ,
     isAvailable: { type: Boolean , default: true } , // האם המנה קיימת כרגע במטבח
-    tags: [String] , // תגיות נוספות (למשל: 'חריף', 'טבעוני', 'ללא גלוטן')
+    tags: [{  he: { type: String, required: true }, en: { type: String, required: true } }], // תגיות נוספות (למשל: 'חריף', 'טבעוני', 'ללא גלוטן')
     createdAt: { type: Date, default: Date.now }
 });
 

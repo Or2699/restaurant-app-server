@@ -63,4 +63,21 @@ router.patch('/:id/status' , protect , admin , async (req,res) => {  //יכול�
 }) ;
 
 
+
+// קבלת הזמנות פעילות בלבד - שולחנות פעילים 
+router.get('/active' , protect , async (req,res) => {
+    try {
+        const activeOrders = await Order.find({status: { $in: ['pending', 'preparing', 'served']}})
+        .populate('user', 'fullName')
+        .populate('items.product', 'name') // מושך את שם המנה
+        .sort({ createdAt: -1 }); // הכי חדש מופיע ראשון
+
+        res.json(activeOrders);
+
+
+    } 
+    catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+
 export default router;

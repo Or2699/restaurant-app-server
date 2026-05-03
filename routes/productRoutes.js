@@ -16,9 +16,9 @@ router.get('/' , async (req , res) => {
 });
 
 
-
+ 
 // הוספת מנה רק על ידי המנהל 
-router.post('/' , protect , admin , async (req , res) =>{
+router.post('/' ,protect , admin , async (req , res) =>{
     try {
         const { name , description , price , category, image, tags } = req.body;
         const newProduct = new Product ({ name , description , price , category, image, tags });
