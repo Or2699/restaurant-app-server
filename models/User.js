@@ -6,8 +6,18 @@ const userSchema = new mongoose.Schema({
     password: { type: String , required: true } ,
     phone: { type: String , required: true } ,
     role: { type: String , enum: ['customer', 'waiter', 'admin'], default: 'customer' } , //הרשאת גישה - לפי סוג המשתמש 
-    hourlyWage: { type: Number, default: 0 } ,
+    hourlyWage: { 
+        type: Number, 
+        default: function() {
+            if (this.role === 'waiter') return 35;
+            if (this.role === 'admin') return 60;
+            return 0; 
+        }
+    },
+    monthlyEarnings: { type: Number, default: 0 },
     totalBonuses: { type: Number, default: 0 } ,
+    payoutHistory: { type: Array, default: [] }, // שמירת היסטוריית משכורות
+    currentShiftTables: { type: Number, default: 0 }, // שולחנות למשמרת הנוכחית
     createdAt: { type: Date, default: Date.now } ,// תאריך הצטרפות אוטומטי
     isApproved: { type: Boolean, default: function() { return this.role === 'customer'; }}, // לקוח מאושר אוטומטית, עובד לא
     isOnline: { type: Boolean, default: false }, // האם העובד כרגע במשמרת
