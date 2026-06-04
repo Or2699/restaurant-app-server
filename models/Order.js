@@ -20,8 +20,10 @@ const orderSchema = new mongoose.Schema({
     ] , 
     totalPrice: { type: Number, required: true } ,
     tableNumber: { type: Number , required: true } ,
+    dinersCount: { type: Number, default: 1 },
     status: { type: String, enum: ['pending', 'preparing', 'served', 'paid', 'cancelled'], default: 'pending' } ,  // ניהול מצב ההזמנה (חשוב למלצר ולמטבח)
     createdAt: { type: Date, default: Date.now } , // תאריך ההזמנה אוטומטית
+    assignedWaiter: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     paymentMethod: { 
         type: String, 
         enum: ['Cash', 'Credit Card', 'Apple Pay'], 

@@ -3,6 +3,8 @@ import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { protect, admin } from '../middlewares/authMiddleware.js'; 
+import Order from '../models/Order.js';
+
 
 
 const router = express.Router();
@@ -79,14 +81,30 @@ router.patch('/toggle-shift/:id' , async(req,res) => {
       let bonus = 0;
       if (hours >= 10) bonus += 50; 
       if (user.currentShiftTables >= 10) bonus += 30; 
+      
+      user.shiftHistory.push({
+          date: new Date(),
+          hoursWorked: hours.toFixed(2),
+          tablesServed: user.currentShiftTables,
+          shiftBonus: bonus
+      });
+      
       user.monthlyEarnings += (hours * user.hourlyWage) + bonus;
       user.totalBonuses += bonus;
+
+     const result = await Order.updateMany(
+        { assignedWaiter: user._id }, // נסי בלי התנאי של הסטטוס רק כדי לבדוק
+        { $set: { assignedWaiter: null  } }
+    );
+    console.log("Update result count:", result.modifiedCount);
+
       user.isOnline = false;
     }
 
     await user.save();
-    res.json({ success: true, isOnline: user.isOnline });
+    res.json({ success: true, user: user, isOnline: user.isOnline });
    } catch (error) {
+     console.error(error);
      res.status(500).json({ message: error.message });
   }
 });
@@ -171,6 +189,14 @@ router.patch('/add-bonus/:id', protect, admin, async (req, res) => {
         const user = await User.findById(req.params.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
+        // הוספה להיסטוריה עם סימון שזה מהמנהל 
+        user.payoutHistory.push({
+            date: new Date(),
+            amount: Number(bonusAmount),
+            bonuses: Number(bonusAmount),
+            isManagerBonus: true 
+        });
+
         user.totalBonuses += Number(bonusAmount);
         user.monthlyEarnings += Number(bonusAmount); 
         await user.save();
@@ -181,6 +207,8 @@ router.patch('/add-bonus/:id', protect, admin, async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+
+
 
 
 // תשלום לכולם (איפוס נתונים ושמירה להיסטוריה)
@@ -204,6 +232,51 @@ router.post('/reset-wages', protect, admin, async (req, res) => {
     } 
     catch (err) {
         res.status(500).json({ message: err.message });
+    }
+});
+
+
+// נתיב בטוח לבונוסים - רק למלצר המחובר
+router.get('/my-bonus-data', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id)
+            .select('monthlyEarnings totalBonuses payoutHistory shiftHistory hourlyWage');
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+
+
+// ראוט זמני להזרקת נתוני פיקטיביים לעובד (למחיקה אחרי הבדיקה!)
+router.post('/inject-test-data', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // הזרקת היסטוריית משכורות 
+        user.payoutHistory = [
+            { date: new Date('2026-03-30'), amount: 4200.50, bonuses: 350, tablesServed: 110 },
+            { date: new Date('2026-04-30'), amount: 3850.00, bonuses: 120, tablesServed: 95 },
+            { date: new Date('2026-05-30'), amount: 4800.75, bonuses: 450, tablesServed: 135 }
+        ];
+
+        // הזרקת היסטוריית משמרות 
+        user.shiftHistory = [
+            { date: new Date('2026-06-01'), hoursWorked: "8.5", tablesServed: 12, shiftBonus: 80 },
+            { date: new Date('2026-06-02'), hoursWorked: "6.0", tablesServed: 8, shiftBonus: 0 },
+            { date: new Date('2026-06-03'), hoursWorked: "10.5", tablesServed: 15, shiftBonus: 80 }
+        ];
+
+        // עדכון הקופה של החודש הנוכחי
+        user.monthlyEarnings = 1450.50;
+        user.totalBonuses = 160;
+
+        await user.save();
+        res.json({ success: true, message: 'הנתונים הוזרקו בהצלחה!', user });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 });
 

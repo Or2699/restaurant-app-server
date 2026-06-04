@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema({
     isApproved: { type: Boolean, default: function() { return this.role === 'customer'; }}, // לקוח מאושר אוטומטית, עובד לא
     isOnline: { type: Boolean, default: false }, // האם העובד כרגע במשמרת
     lastShiftStart: { type: Date }, // מתי התחילה המשמרת האחרונה
+    shiftHistory: { type: Array, default: [] }, // היסטוריית משמרות עם פרטים כמו תאריך, שעות עבודה, בונוסים שהתקבלו וכו
 });
 
 const User = mongoose.model('User', userSchema); //יצירת המודל מתוך הסכימה 
