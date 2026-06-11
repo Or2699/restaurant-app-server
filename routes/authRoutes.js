@@ -7,6 +7,7 @@ import Order from '../models/Order.js';
 
 
 
+
 const router = express.Router();
 
 // Register - נתיב להרשמה 
@@ -247,6 +248,23 @@ router.get('/my-bonus-data', protect, async (req, res) => {
     }
 });
 
+
+// עדכון פרטי הפרופיל
+router.patch('/profile/:id', protect, async (req, res) => {
+    try {
+        const { fullName , phone } = req.body;
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        if (fullName) user.fullName = fullName;
+        if (phone) user.phone = phone;       
+        await user.save();
+        res.json({ success: true, user });
+    } 
+    catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
 
 
 // ראוט זמני להזרקת נתוני פיקטיביים לעובד (למחיקה אחרי הבדיקה!)

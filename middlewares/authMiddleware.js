@@ -12,7 +12,7 @@ export const protect = async (req , res , next) => {
             const decoded = jwt.verify(token , process.env.JWT_SECRET); // בודק שהטוקן תקין ומפענח אותו
             req.user = await User.findById(decoded.id).select('-password'); 
             console.log("This is the user on the request:", req.user);
-            next();
+            next(); // ממשיך לבקשה הבאה אם הטוקן תקין
         }
         
         catch (err) {

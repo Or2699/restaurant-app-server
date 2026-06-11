@@ -91,7 +91,8 @@ router.patch('/:id/status' , protect , async(req , res) => {
                 orderToUpdate.assignedWaiter = req.user._id;
             }
             if (orderToUpdate.user) {
-                const waiterId = orderToUpdate.user._id || orderToUpdate.user;
+                //const waiterId = orderToUpdate.user._id || orderToUpdate.user;
+                const waiterId = orderToUpdate.assignedWaiter;
                 await User.findByIdAndUpdate(waiterId, { $inc: { currentShiftTables: 1 } });
                 console.log(" הוספנו שולחן למלצר:", waiterId);
             }
@@ -133,7 +134,7 @@ router.get('/history' , protect , admin , async(req,res) => {
 // עדכון מנות בתוך הזמנה פתוחה (מחיקת מנה/עריכה)
 router.put('/:id/items', protect, async (req, res) => {
     try {
-        const { items } = req.body;
+        const { items , totalPrice} = req.body;
         const orderToUpdate = await Order.findById(req.params.id);
         
         if (!orderToUpdate) 
@@ -142,12 +143,15 @@ router.put('/:id/items', protect, async (req, res) => {
             return res.status(400).json({ message: 'Cannot edit an order that is already being prepared' });
         
         orderToUpdate.items = items;
+        if (totalPrice !== undefined) 
+            orderToUpdate.totalPrice = totalPrice; 
+        
         await orderToUpdate.save();
 
         // שולפים מחדש את ההזמנה המעודכנת עם פרטי המנות והמלצר כדי שהאפליקציה לא תקרוס
         const updatedOrder = await Order.findById(req.params.id)
             .populate('user', 'fullName')
-            .populate('items.product', 'name');
+            .populate('items.product', 'name ');
         res.status(200).json(updatedOrder);
     } 
     catch (err) {
@@ -215,6 +219,19 @@ router.get('/my-history', protect, async (req, res) => {
     }
 });
 
+
+// קבלת כל ההזמנות של הלקוח המחובר (פעילות והיסטוריה) - לקוח ספיציפי 
+router.get('/my-orders', protect, async (req, res) => {
+    try {
+        const orders = await Order.find({ user: req.user._id })
+            .populate('assignedWaiter', 'fullName')
+            .populate('items.product', 'name price image') 
+            .sort({ createdAt: -1 });
+        res.json(orders);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
 
 
 export default router;
