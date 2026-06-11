@@ -118,6 +118,7 @@ router.get('/history' , protect , admin , async(req,res) => {
     try {
         const orders = await Order.find({status: 'paid'})
         .populate('user', 'fullName') // מביא את שם המלצר
+        .populate('assignedWaiter', 'fullName')
         .populate('items.product', 'name price category') // מביא את פרטי המנה
         .sort({ createdAt: -1 });
            
